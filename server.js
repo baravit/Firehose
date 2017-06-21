@@ -1,9 +1,9 @@
 /*********************/
 /* Express Packages: */
 /*********************/
-var express = require('express'),
+var express 	= require('express'),
 bodyParser 	= require('body-parser'),
-fs 			= require('fs'),
+fs 		= require('fs'),
 aws 		= require('aws-sdk'),
 datetime 	= require('node-datetime'),
 request 	= require('request'),
@@ -33,24 +33,24 @@ var time = new Date().toISOString()
 var FUNKEY_DJANGO_SERVER_URL		= process.env.FUNKEY_DJANGO_SERVER_URL;
 var FUNKEY_MONGO_RAW_VIEW_NAME		= process.env.FUNKEY_MONGO_RAW_VIEW_NAME;
 var FUNKEY_MONGO_PARSED_VIEW_NAME	= process.env.FUNKEY_MONGO_PARSED_VIEW_NAME;
-var FUNKEY_ES_RAW_VIEW_NAME			= process.env.FUNKEY_ES_RAW_VIEW_NAME;
+var FUNKEY_ES_RAW_VIEW_NAME		= process.env.FUNKEY_ES_RAW_VIEW_NAME;
 var FUNKEY_ES_PARSED_VIEW_NAME		= process.env.FUNKEY_ES_PARSED_VIEW_NAME;
-var FUNKEY_S3_BUCKET_NAME			= process.env.FUNKEY_S3_BUCKET_NAME;
+var FUNKEY_S3_BUCKET_NAME		= process.env.FUNKEY_S3_BUCKET_NAME;
 
 /**************/
 /* Constants: */
 /**************/
-var BF_NAME			= "/var/log/firehose/bigFileBuffer.txt";
-var SF_NAME			= "/var/log/firehose/smallFileBuffer.txt";
+var BF_NAME		= "/var/log/firehose/bigFileBuffer.txt";
+var SF_NAME		= "/var/log/firehose/smallFileBuffer.txt";
 var BF_TO_DUMP		= "/var/log/firehose/bigFileToDump.txt";
 var SF_TO_DUMP		= "/var/log/firehose/smallFileToDump.txt";
 var FAILED_TO_POST	= "/var/log/firehose/failedToPostBuffer.log";
 
 //KBD-Reports files:
-var KBD_BF_NAME			= "/var/log/firehose/KBD_bigFileBuffer.txt";
-var KBD_SF_NAME			= "/var/log/firehose/KBD_smallFileBuffer.txt";
-var KBD_BF_TO_DUMP		= "/var/log/firehose/KBD_bigFileToDump.txt";
-var KBD_SF_TO_DUMP		= "/var/log/firehose/KBD_smallFileToDump.txt";
+var KBD_BF_NAME		= "/var/log/firehose/KBD_bigFileBuffer.txt";
+var KBD_SF_NAME		= "/var/log/firehose/KBD_smallFileBuffer.txt";
+var KBD_BF_TO_DUMP	= "/var/log/firehose/KBD_bigFileToDump.txt";
+var KBD_SF_TO_DUMP	= "/var/log/firehose/KBD_smallFileToDump.txt";
 
 var BIG_BUFFER_SIZE 	= 1073741824;
 var SMALL_BUFFER_SIZE 	= 20971520;
@@ -63,7 +63,13 @@ var headers = { 'User-Agent'	 : 'FunkeyFirehoseServer/0.0.1',
 
 /**************/
 /* Functions: */
-/**************/
+/**************
+
+/**
+ * Dump fileToDump to the remoteFolder on the relevant bucket.
+ * @param {String} fileToDump 
+ * @param {String} remoteFolder
+ */
 var dumpFileToS3 = function( fileToDump, remoteFolder){
 	var fileBuffer 		= fs.readFileSync(fileToDump);
 	var remoteFileName	= remoteFolder + formatted + '.txt';
@@ -86,6 +92,11 @@ var dumpFileToS3 = function( fileToDump, remoteFolder){
 	});
 }
 
+/**
+ * Send log to django view
+ * @param {String} viewName 
+ * @param {json} log
+ */
 var sendLogToDjangoView = function( viewName, log ){
 	var options = {
 					url: FUNKEY_DJANGO_SERVER_URL + viewName,
@@ -117,6 +128,11 @@ var sendLogToDjangoView = function( viewName, log ){
 	});
 }
 
+/**
+ * Check the existance of file
+ * @param {String} file
+ * @param {Function} callback
+ */
 function checkIfFile(file, callback) {
 	  fs.stat(file, function fsStat(err, stats) {
 	    if (err) {
@@ -129,35 +145,16 @@ function checkIfFile(file, callback) {
 	    return callback(null, stats.isFile());
 	  });
 	}
-
-//create watcher on fileToWatch and dump it to s3 when it exceed bufferSize.
+/**
+ * create watcher on fileToWatch and dump it to s3 when it exceed bufferSize.
+ * @param {String} fileToWatch 
+ * @param {String} fileToDump 
+ * @param {String} bufferSize
+ * @param {String} bucketPrefix
+ */
 var watchFile = function(fileToWatch, fileToDump, bufferSize, bucketPrefix ){
 	require('file-size-watcher').watch(fileToWatch).on('sizeChange', function callback(newSize, oldSize){
-		if(newSize > bufferSize){
-//			fs.stat(fileToDump, function(err, stat){
-//				if(err == null) {
-//					console.log("Concurrency ERROR - Failed to dump " + fileToDump + " to S3.");
-//					dumpFileToS3(fileToDump, bucketPrefix);
-//			    } else if(err.code == 'ENOENT') {
-//			    	fs.rename(fileToWatch, fileToDump, function(err) {
-//						//callback - rename buffer file:
-//						if ( err ) console.log('Failed to rename buffer file ||| ERROR: ' + err);
-//						dumpFileToS3(fileToDump, bucketPrefix);
-//					});
-//			    }
-//			});	
-//			if(fs.existsSync(fileToDump)){
-//				console.log("Concurrency ERROR - Failed to dump " + fileToDump + " to S3.");
-//				dumpFileToS3(fileToDump, bucketPrefix);
-//			}
-//			else{
-//				fs.rename(fileToWatch, fileToDump, function(err) {
-//					//callback - rename buffer file:
-//					if ( err ) console.log('Failed to rename buffer file ||| ERROR: ' + err);
-//					dumpFileToS3(fileToDump, bucketPrefix);
-//				});
-//			}
-			
+		if(newSize > bufferSize){	
 			checkIfFile(fileToDump, function(err, isFile) {
 				  if (isFile) {
 					  console.log("Concurrency ERROR - Failed to dump " + fileToDump + " to S3.");
