@@ -1,14 +1,14 @@
 /*********************/
 /* Express Packages: */
 /*********************/
-var express 	= require('express'),
-bodyParser 	= require('body-parser'),
-fs 		= require('fs'),
-aws 		= require('aws-sdk'),
-datetime 	= require('node-datetime'),
-request 	= require('request'),
-app   		= express(),
-serverPort 	= 8081;
+var express 	= require('express');
+var bodyParser 	= require('body-parser');
+var fs 		= require('fs');
+var aws 	= require('aws-sdk');
+var datetime 	= require('node-datetime');
+var request 	= require('request');
+var app   	= express();
+var serverPort 	= 8081;
 
 //For extract the entire body portion of an incoming request 
 app.use(bodyParser.urlencoded({
@@ -30,12 +30,12 @@ var time = new Date().toISOString()
 /*************************/
 /* Environment Variables */
 /*************************/
-var FUNKEY_DJANGO_SERVER_URL		= process.env.FUNKEY_DJANGO_SERVER_URL;
-var FUNKEY_MONGO_RAW_VIEW_NAME		= process.env.FUNKEY_MONGO_RAW_VIEW_NAME;
-var FUNKEY_MONGO_PARSED_VIEW_NAME	= process.env.FUNKEY_MONGO_PARSED_VIEW_NAME;
-var FUNKEY_ES_RAW_VIEW_NAME		= process.env.FUNKEY_ES_RAW_VIEW_NAME;
-var FUNKEY_ES_PARSED_VIEW_NAME		= process.env.FUNKEY_ES_PARSED_VIEW_NAME;
-var FUNKEY_S3_BUCKET_NAME		= process.env.FUNKEY_S3_BUCKET_NAME;
+var DJANGO_SERVER_URL		= process.env.DJANGO_SERVER_URL;
+var MONGO_RAW_VIEW_NAME		= process.env.MONGO_RAW_VIEW_NAME;
+var MONGO_PARSED_VIEW_NAME	= process.env.MONGO_PARSED_VIEW_NAME;
+var ES_RAW_VIEW_NAME		= process.env.ES_RAW_VIEW_NAME;
+var ES_PARSED_VIEW_NAME		= process.env.ES_PARSED_VIEW_NAME;
+var S3_BUCKET_NAME		= process.env.S3_BUCKET_NAME;
 
 /**************/
 /* Constants: */
@@ -46,14 +46,8 @@ var BF_TO_DUMP		= "/var/log/firehose/bigFileToDump.txt";
 var SF_TO_DUMP		= "/var/log/firehose/smallFileToDump.txt";
 var FAILED_TO_POST	= "/var/log/firehose/failedToPostBuffer.log";
 
-//KBD-Reports files:
-var KBD_BF_NAME		= "/var/log/firehose/KBD_bigFileBuffer.txt";
-var KBD_SF_NAME		= "/var/log/firehose/KBD_smallFileBuffer.txt";
-var KBD_BF_TO_DUMP	= "/var/log/firehose/KBD_bigFileToDump.txt";
-var KBD_SF_TO_DUMP	= "/var/log/firehose/KBD_smallFileToDump.txt";
-
-var BIG_BUFFER_SIZE 	= 1073741824;
-var SMALL_BUFFER_SIZE 	= 20971520;
+var BIG_BUFFER_SIZE 	= 1073741824; 	//1GB
+var SMALL_BUFFER_SIZE 	= 20971520;	//20MB
 
 
 //set the headers to the post request to django
@@ -179,44 +173,15 @@ var watchFile = function(fileToWatch, fileToDump, bufferSize, bucketPrefix ){
 watchFile(SF_NAME, SF_TO_DUMP, SMALL_BUFFER_SIZE, "small-files/");
 watchFile(BF_NAME, BF_TO_DUMP, BIG_BUFFER_SIZE, "big-files/");
 
-//KBD-Reports:
-watchFile(KBD_SF_NAME, KBD_SF_TO_DUMP, SMALL_BUFFER_SIZE, "kbd-reports/small-files/");
-watchFile(KBD_BF_NAME, KBD_BF_TO_DUMP, BIG_BUFFER_SIZE, "kbd-reports/big-files/");
-
 
 /***********/
 /* SERVER: */
 /***********/
 app.get("/", function (req, res) {
-	res.end("Funkey Firehose is up and running");
+	res.end("Firehose is up and running");
 });
 
-app.post("/sendKBDReports", function (req, res) {
-	
-	var body = '';
-	req.on('data', function(data) {
-		body += data;
-	});
-	
-	//write logs to small and big buffers
-	req.on('end', function (){
-		fs.appendFile(KBD_BF_NAME, body + '\n', function(err){
-			if (err){
-				console.log("Failed to write KBD report to big file buffer. ERR: " + err + " | " + time);
-			}
-		});
-		fs.appendFile(KBD_SF_NAME, body + '\n', function(err){
-			if (err){
-				console.log("Failed to write KBD report to small file buffer. ERR: " + err + " | " + time);
-			}
-		});
-		
-		res.end("KBD Report has successfully handled");
-
-	});
-
-});
-
+///sendjson url gets log as json, append it to small&big buffers and return response to the client:
 app.post("/sendjson", function (req, res) {
 	
 	dt              = datetime.create();
@@ -242,16 +207,14 @@ app.post("/sendjson", function (req, res) {
 		
 		res.end("The log inserted successfully");
 		
-//		sendLogToDjangoView(FUNKEY_MONGO_RAW_VIEW_NAME, JSON.parse(body));
-		sendLogToDjangoView(FUNKEY_ES_RAW_VIEW_NAME, JSON.parse(body));
-//		sendLogToDjangoView(FUNKEY_MONGO_PARSED_VIEW_NAME, JSON.parse(body));
-		sendLogToDjangoView(FUNKEY_ES_PARSED_VIEW_NAME, JSON.parse(body));
+	//Response already get to the requested server.
+	//Continue with async tasks here.
 
 	});
 
 });
 
 app.listen(serverPort, function () {
-	console.log('FunkeyFirehose is running on port ' + serverPort + ' from: ' + time);
+	console.log('Firehose is running on port ' + serverPort + ' from: ' + time);
 });
 
