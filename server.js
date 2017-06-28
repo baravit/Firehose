@@ -51,7 +51,7 @@ var SMALL_BUFFER_SIZE 	= 20971520;	//20MB
 
 
 //set the headers to the post request to django
-var headers = { 'User-Agent'	 : 'FunkeyFirehoseServer/0.0.1',
+var headers = { 'User-Agent'	 : 'FirehoseServer/0.0.1',
 				'Content-Type' 	 : 'application/json'
 	};
 
@@ -68,9 +68,9 @@ var dumpFileToS3 = function( fileToDump, remoteFolder){
 	var fileBuffer 		= fs.readFileSync(fileToDump);
 	var remoteFileName	= remoteFolder + formatted + '.txt';
 	s3.putObject({
-		ACL			: 'public-read',
-		Bucket		: FUNKEY_S3_BUCKET_NAME,
-		Key			: remoteFileName,
+		ACL		: 'public-read',
+		Bucket		: S3_BUCKET_NAME,
+		Key		: remoteFileName,
 		Body		: fileBuffer,
 		ContentType	: "text/html"
 	}, function(error, res){
@@ -93,7 +93,7 @@ var dumpFileToS3 = function( fileToDump, remoteFolder){
  */
 var sendLogToDjangoView = function( viewName, log ){
 	var options = {
-					url: FUNKEY_DJANGO_SERVER_URL + viewName,
+					url: DJANGO_SERVER_URL + viewName,
 					method: 'POST',
 					headers: headers,
 					json: log
