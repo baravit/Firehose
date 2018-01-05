@@ -30,11 +30,6 @@ var time = new Date().toISOString()
 /*************************/
 /* Environment Variables */
 /*************************/
-var DJANGO_SERVER_URL		= process.env.DJANGO_SERVER_URL;
-var MONGO_RAW_VIEW_NAME		= process.env.MONGO_RAW_VIEW_NAME;
-var MONGO_PARSED_VIEW_NAME	= process.env.MONGO_PARSED_VIEW_NAME;
-var ES_RAW_VIEW_NAME		= process.env.ES_RAW_VIEW_NAME;
-var ES_PARSED_VIEW_NAME		= process.env.ES_PARSED_VIEW_NAME;
 var S3_BUCKET_NAME		= process.env.S3_BUCKET_NAME;
 
 /**************/
@@ -83,42 +78,6 @@ var dumpFileToS3 = function( fileToDump, remoteFolder){
 					if (err) console.log('Failed to delete ' + fileToDump + ' ||| ERROR : ' + err);
 				});
 			}
-	});
-}
-
-/**
- * Send log to django view
- * @param {String} viewName 
- * @param {json} log
- */
-var sendLogToDjangoView = function( viewName, log ){
-	var options = {
-					url: DJANGO_SERVER_URL + viewName,
-					method: 'POST',
-					headers: headers,
-					json: log
-				};
-
-	// Start the request
-	request(options, function (error, resp, post_body) {
-		if (!(!error && resp.statusCode == 200)) {
-			//Error / statusCode != 200:
-			if(error){
-				console.log("Django failed accepting the request! ||| ERROR : " + 
-						error + " | " + time);
-				return;
-			}
-			else { 
-				console.log("Django View : " + viewName + " | " + "TIME: "  + time);
-				console.log("Response Code : " + resp.statusCode + " | The log added to failedToPostBuffer.log | " + JSON.stringify(log));				
-				fs.appendFile(FAILED_TO_POST, JSON.stringify(log) + '\n', function(err){
-					if (err) {
-						console.log("Failed to write log to failedToPostBuffer.log ||| ERROR : " + 
-								err + " | " + time);
-					}
-				});
-			}
-		}
 	});
 }
 
